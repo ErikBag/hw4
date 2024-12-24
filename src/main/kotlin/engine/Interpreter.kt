@@ -1,91 +1,62 @@
 package engine
 
-import ast.Assignment
-import ast.BinOp
-import ast.BoolConstant
-import ast.Expression
-import ast.IfStmt
-import ast.IntConstant
-import ast.ReturnStmt
-import ast.UnOp
-import ast.VarRef
+import ast.*
 import java.util.Collections.emptyList
 
+
 class Interpreter {
-    fun interpret (statements: Statements): List<Statements> {
-        val nextStatements = statements.nextStatements.firstOrNull() ?: return emptyList()
-        statements.nextStatements = statements.nextStatements.drop(1)
-        if(nextStatements is IfStmt) {
-            return interpretIfStmt(statements, nextStatements)
+    fun step(state: State): List<State> {
+        val nextState = state.nextStates.firstOrNull() ?: return emptyList()
+        state.nextStates = if (state.nextStates.isNotEmpty()) state.nextStates.drop(1) else state.nextStates
+        when (nextState) {
+            is IfStmt -> {
+                val condition = Evaluator(state.memory).evaluate(nextState.condition)
+                val thenState = State(
+                    state.memory.copy(),
+                    nextState.thenBlock + state.nextStates,
+                    state.pc + listOf(condition),
+                    null
+                )
+                val elseState = State(
+                    state.memory.copy(),
+                    nextState.elseBlock + state.nextStates,
+                    state.pc + listOf(UnOp(UnOpKind.UO_Neg, condition, Type.T_BOOL)),
+                    null
+                )
+                return listOf(thenState, elseState)
+            }
+            is Assignment -> {
+                val expr = Evaluator(state.memory).evaluate(nextState.value)
+                state.memory.put(nextState.name, expr)
+                return listOf(state)
+            }
+            is ReturnStmt -> {
+                val expr = Evaluator(state.memory).evaluate(nextState.returnExpr)
+                state.res = expr
+                return listOf(state)
+            }
+            else -> return emptyList()
         }
-
-        if(nextStatements is Assignment) {
-                val symValue = Evaluator(statements.memory).evaluate(nextStatements.value)
-                statements.memory.put(nextStatements.name, "(${symValue})")
-                return listOf(statements)
-        }
-
-        if(nextStatements is ReturnStmt) {
-                val symValue = Evaluator(statements.memory).evaluate(nextStatements.returnExpr)
-                statements.res = symValue
-                return listOf(statements)
-        }
-
-        return emptyList()
-    }
-
-    private fun interpretIfStmt(statements: Statements, nextStatements : IfStmt): List<Statements> {
-        val condition = Evaluator(statements.memory).evaluate(nextStatements.condition)
-        val trueState = Statements(
-            statements.memory.clone(),
-            nextStatements.thenBlock + statements.nextStatements,
-            statements.pc + listOf(condition)
-        )
-        val falseState = Statements(
-            statements.memory.clone(),
-            nextStatements.elseBlock + statements.nextStatements,
-            statements.pc + listOf("!($condition)")
-        )
-        return listOf(trueState, falseState)
     }
 
     private class Evaluator(val memory: MyMemory) {
-        fun evaluate(expression: Expression): String {
-            if(expression is BinOp) {
-                return evaluateBinOp(expression)
+        fun evaluate(expr: Expression): Expression {
+            return when (expr) {
+                is BinOp -> return BinOp(
+                    expr.kind,
+                    evaluate(expr.lhs),
+                    evaluate(expr.rhs),
+                    expr.type
+                )
+                is UnOp -> return UnOp(
+                    expr.kind,
+                    evaluate(expr.subExpr),
+                    expr.type
+                )
+                is VarRef -> memory.get(expr.identifier)
+                is ErrorExpression -> throw RuntimeException("ErrorExpression")
+                else -> return expr
             }
-
-            if(expression is BoolConstant) {
-                return expression.value.toString()
-            }
-
-            if(expression is IntConstant) {
-                return expression.value.toString()
-            }
-
-            if(expression is UnOp) {
-                return "${expression.kind}(${evaluate(expression.subExpr)})"
-            }
-
-            if(expression is VarRef) {
-                return memory.get(expression.identifier)
-            }
-            else {
-                throw Exception("ErrorExpression in program")
-            }
-        }
-
-        private fun evaluateBinOp(expression: Expression): String{
-            var res = ""
-            var rightExpr = expression
-            while (rightExpr is BinOp) {
-                res += evaluate(rightExpr.lhs)
-                res += " ${rightExpr.kind} "
-                rightExpr = rightExpr.rhs
-            }
-
-            res += evaluate(rightExpr)
-            return res
         }
     }
 }

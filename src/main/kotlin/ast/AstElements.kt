@@ -12,18 +12,24 @@ enum class Type {
 }
 
 data class Parameter(val name: String, val type: Type) {
-    override fun toString(): String = "$name: ${type}"
+    override fun toString(): String = "$name: $type"
 }
 
 sealed class Expression(val type: Type)
 
 class ErrorExpression(type: Type) : Expression(type)
 
-class VarRef(val identifier: String, type: Type) : Expression(type)
+class VarRef(val identifier: String, type: Type) : Expression(type) {
+    override fun toString(): String = "'$identifier'"
+}
 
-class IntConstant(val value: Long) : Expression(Type.T_INT)
+class IntConstant(private val value: Long) : Expression(Type.T_INT){
+    override fun toString(): String = value.toString()
+}
 
-class BoolConstant(val value: Boolean) : Expression(Type.T_BOOL)
+class BoolConstant(private val value: Boolean) : Expression(Type.T_BOOL){
+    override fun toString(): String = value.toString()
+}
 
 enum class UnOpKind {
     UO_Neg;
@@ -34,7 +40,9 @@ enum class UnOpKind {
         }
 }
 
-class UnOp(val kind: UnOpKind, val subExpr: Expression, type: Type) : Expression(type)
+class UnOp(val kind: UnOpKind, val subExpr: Expression, type: Type) : Expression(type){
+    override fun toString(): String = "!(${subExpr})"
+}
 
 enum class BinOpKind {
     BO_Add,
@@ -55,7 +63,9 @@ enum class BinOpKind {
         }
 }
 
-class BinOp(val kind: BinOpKind, val lhs: Expression, val rhs: Expression, type: Type) : Expression(type)
+class BinOp(val kind: BinOpKind, val lhs: Expression, val rhs: Expression, type: Type) : Expression(type){
+    override fun toString(): String = "$lhs $kind $rhs"
+}
 
 sealed class Statement
 

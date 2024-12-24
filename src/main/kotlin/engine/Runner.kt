@@ -2,34 +2,36 @@ package engine
 
 import ast.Function
 import ast.ReturnStmt
+import ast.VarRef
+
 
 class Runner {
-    fun run(f: Function): List<Statements> {
+    fun run(f: Function): List<State> {
         val interpreter = Interpreter()
-
         val memory = MyMemory()
-        f.parameters.forEach{memory.put(it.name, "'${it.name}'")}
-
-        val initStatement = Statements(
-            memory, 
-            f.body + listOfNotNull(f.returnValue?.let { ReturnStmt(it) }), 
-            emptyList())
+        f.parameters.forEach{param -> memory.put(param.name, VarRef(param.name, param.type))}
 
 
-        var statements = listOf(initStatement)
+        var states = listOf(
+            State(
+                memory,
+                f.body + listOfNotNull(f.returnValue?.let{ReturnStmt(it)}),
+                emptyList(),
+                null
+            )
+        )
+        val result = mutableListOf<State>()
 
-        val result = mutableListOf<Statements>()
+        while (states.isNotEmpty()) {
+            val nowState = states.first()
+            states = states.drop(1)
 
-        while (statements.isNotEmpty()) {
-            val curStatement = statements.first()
-            statements = statements.drop(1)
-
-            if (curStatement.res != null) {
-                result.add(curStatement)
+            if (nowState.res != null) {
+                result.add(nowState)
             }
 
-            val nextStatement = interpreter.interpret(curStatement)
-            statements = nextStatement + statements
+            val nextState = interpreter.step(nowState)
+            states = nextState + states
         }
         return result
     }

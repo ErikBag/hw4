@@ -1,27 +1,25 @@
 package engine
 
+import ast.Expression
+
 class MyMemory {
-    private val memory = mutableMapOf<String, String>()
+    private val memory = mutableMapOf<String, Expression>()
 
-    fun put(key: String, value: String) {
-        memory[key] = value
+    fun put(param_name: String, expr: Expression) {
+        memory[param_name] = expr
     }
 
-    fun get(key: String): String {
-        return memory[key] ?: throw Exception("$key not in memory")
+    fun get(param_name: String): Expression {
+        return memory[param_name] ?: throw RuntimeException("$param_name not in memory")
     }
 
-    fun clone(): MyMemory {
-        val newMemory = MyMemory()
-        memory.forEach { (k, v) -> newMemory.put(k, v) }
-        return newMemory
-    }
-
-    override fun toString(): String {
-        var sb = ""
-        for ((key, value) in memory) {
-            sb += "$key = $value\n"
+    fun copy(): MyMemory {
+        return MyMemory().also { newMemory ->
+            for ((k, v) in memory) {
+                newMemory.put(k, v)
+            }
         }
-        return sb
     }
+
+    override fun toString(): String = memory.map { (key, value) -> "$key = $value" }.joinToString("\n")
 }

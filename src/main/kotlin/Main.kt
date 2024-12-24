@@ -15,21 +15,18 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     if (args.size != 2) {
-        println("So many arguments\nProvide two arguments: <inputPath> <outputPath>")
-        return
+        throw RuntimeException("Incorrect number of arguments\nProvide two arguments: <inputPath> <outputPath>")
     }
     val inputPath = Paths.get(args[0])
     val outputPath = Paths.get(args[1])
     if (!Files.exists(inputPath)) {
-        System.err.println("File not found: $inputPath")
-        exitProcess(1)
+        throw RuntimeException("File not found: $inputPath")
     }
 
-    val input_text = CharStreams.fromStream(FileInputStream(inputPath.toFile()))
-    val parser = mygrammarParser(CommonTokenStream(mygrammarLexer(input_text)))
+    val inputText = CharStreams.fromStream(FileInputStream(inputPath.toFile()))
+    val parser = mygrammarParser(CommonTokenStream(mygrammarLexer(inputText)))
     if (parser.numberOfSyntaxErrors > 0) {
-        System.err.println("fatal: encountered syntax errors")
-        exitProcess(1)
+        throw RuntimeException("detected syntax error in $inputPath")
     }
 
     val astbBuilder = ASTBuilder.create()

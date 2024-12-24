@@ -1,12 +1,13 @@
 package engine
 
 import ast.Statement
+import ast.Expression
 
-class Statements(
+class State(
     val memory: MyMemory,
-    var nextStatements: List<Statement>,
-    val pc: List<String>,
-    var res: String? = null
+    var nextStates: List<Statement>,
+    val pc: List<Expression>,
+    var res: Expression?
 ) {
-    override fun toString() = "{\n$memory\npc = ${pc.joinToString(" & ")}\nresult = $res\n}"
+    override fun toString() = "{\n$memory\npc = (${pc.joinToString(") & (")})\nresult = $res\n}\n"
 }
